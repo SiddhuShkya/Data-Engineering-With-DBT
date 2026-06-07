@@ -21,7 +21,7 @@ We are now going to create our first dbt model. When we ran dbt init, it created
 └── tests
 ```
 
-*You can completely remove the example folder, as this can make things confusing while creating your own dbt model.*
+*You can completely remove the content of example folder, as this can make things confusing while creating your own dbt model.*
 
 ### 1. Create your first dbt model
 
@@ -29,7 +29,7 @@ We are now going to create our first dbt model. When we ran dbt init, it created
 
 ```sh
 $ cd nyc_parking_violations/
-$ cd models
+$ cd models/example/
 $ touch first_model.sql
 ```
 
