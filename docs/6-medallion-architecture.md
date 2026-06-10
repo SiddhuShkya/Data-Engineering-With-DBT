@@ -26,6 +26,8 @@ Now we have breakdown our project, we are finally ready to build our DBT Project
 
 ### 1. Medallion Architecture : 🥉 Bronze Data
 
+---
+
 The bronze data should be in a mostly raw state, where minor tranformations are made to make it easier to manage data within your analytical database. For our usecase we will be taking a subset of the parking violation data columns. We should have the following tables added to our database when we're done:
 
 - bronze_parking_violation_codes
@@ -398,6 +400,8 @@ with ddb.connect('data/nyc_parking_violations.db') as con:
 *We have successfully created our bronze tables for the medallion architecture, now let's move on the silver part of our medallion architecture.*
 
 ### 2. Medallion Architecture : 🥈 Silver Data
+
+---
 
 Silver data should align with your established data model for your analytical database. While data modeling is extremely important in data engineering, that is not the goal of this tutorial. Instead, we're going to do some simple transformations and make it easier to do our metrics later on. The four tables we are going to be working with are:
 
@@ -841,3 +845,317 @@ with ddb.connect('data/nyc_parking_violations.db') as con:
 
 ### 3. Medallion Architecture : 🥇 Gold Data
 
+---
+
+We're now ready to create our final component of our medallion architecture, which is the gold data. Gold data is ideally for metrics and aggregates that'll be utilized by downstream data consumers via reports and dashboards. We should have the following tables added to our database:
+
+- gold_ticket_location_metrics
+- gold_vehicle metrics
+
+Let's go ahead and get started.
+
+- As always, make sure you are inside your dbt project (nyc_parking_violations).
+
+```sh
+$ cd nyc_parking_violations/
+```
+
+- Create a new folder inside nyc_parking_violations/models directory named gold.
+
+```sh
+$ mkdir models/gold
+```
+
+- Create your sql files for your models here.
+
+```sh
+$ touch models/gold/gold_ticket_metrics.sql
+$ touch models/gold/gold_vehicle_metrics.sql
+```
+
+- Your modesl directory should look like this.
+
+```text
+.
+├── example
+├── bronze
+│   ├── bronze_parking_violation_codes.sql
+│   └── bronze_parking_violations.sql
+├── gold
+│   ├── gold_ticket_metrics.sql
+│   └── gold_vehicle_metrics.sql
+└── silver
+    ├── silver_parking_violation_codes.sql
+    ├── silver_parking_violations.sql
+    ├── silver_violation_tickets.sql
+    └── silver_violation_vehicles.sql
+```
+
+- Copy paste the below SQL Queries into their respective files.
+
+  - gold/gold_ticket_metrics.sql
+
+  ```sql
+  SELECT
+    violation_code,
+    COUNT(summons_number) AS ticket_count,
+    SUM(fee_usd) AS total_revenue_usd
+  FROM
+    {{ref('silver_violation_tickets')}}
+  GROUP BY
+    violation_code
+  ORDER BY
+    total_revenue_usd DESC
+  ```
+
+  - gold/gold_vehicle_metrics.sql
+
+  ```sql
+  SELECT 
+    registration_state,
+    COUNT(summons_number) AS ticket_count
+  FROM 
+      {{ref('silver_violation_vehicles')}}
+  WHERE 
+      registration_state != 'NY'
+  GROUP BY
+      registration_state
+  ORDER BY
+      ticket_count DESC
+  ```
+
+> [!NOTE]
+> The gold tables, just make sure that your dashboard downstreams or your analytics downstream tasks are already prepared and moves very quickly for them. Many times these are some easy wins you can get for your stakeholders to get dashboard move really quickly.
+
+Now, lets go ahead and run some DBT CLI commands to see if everythings working fine or not.
+
+- Run the dbt debug command.
+
+```sh
+$ dbt debug
+```
+```sh
+06:28:21  Running with dbt=1.8.9
+06:28:21  dbt version: 1.8.9
+06:28:21  python version: 3.11.15
+06:28:21  python path: /home/siddhu/Desktop/Data-Engineering-With-DBT/venv/bin/python3.11
+06:28:21  os info: Linux-6.14.0-37-generic-x86_64-with-glibc2.39
+06:28:21  Using profiles dir at /home/siddhu/.dbt
+06:28:21  Using profiles.yml file at /home/siddhu/.dbt/profiles.yml
+06:28:21  Using dbt_project.yml file at /home/siddhu/Desktop/Data-Engineering-With-DBT/nyc_parking_violations/dbt_project.yml
+06:28:21  adapter type: duckdb
+06:28:21  adapter version: 1.8.4
+06:28:21  Configuration:
+06:28:21    profiles.yml file [OK found and valid]
+06:28:21    dbt_project.yml file [OK found and valid]
+06:28:21  Required dependencies:
+06:28:21   - git [OK found]
+
+06:28:21  Connection:
+06:28:21    database: dev
+06:28:21    schema: main
+06:28:21    path: dev.duckdb
+06:28:21    config_options: None
+06:28:21    extensions: None
+06:28:21    settings: {}
+06:28:21    external_root: .
+06:28:21    use_credential_provider: None
+06:28:21    attach: None
+06:28:21    filesystems: None
+06:28:21    remote: None
+06:28:21    plugins: None
+06:28:21    disable_transactions: False
+06:28:21  Registered adapter: duckdb=1.8.4
+06:28:21    Connection test: [OK connection ok]
+
+06:28:21  All checks passed!
+```
+
+- Run the dbt compile command.
+
+```sh
+$ dbt compile
+```
+```sh
+06:29:29  Running with dbt=1.8.9
+06:29:30  Registered adapter: duckdb=1.8.4
+06:29:30  Unable to do partial parsing because profile has changed
+06:29:30  Found 10 models, 426 macros
+06:29:30  
+06:29:30  Concurrency: 1 threads (target='dev')
+06:29:30  
+```
+
+- Run the dbt run command.
+
+```sh
+$ dbt run
+```
+```sh
+06:31:26  Running with dbt=1.8.9
+06:31:27  Registered adapter: duckdb=1.8.4
+06:31:27  Found 10 models, 426 macros
+06:31:27  
+06:31:27  Concurrency: 1 threads (target='dev')
+06:31:27  
+06:31:27  1 of 10 START sql view model main.bronze_parking_violation_codes ............... [RUN]
+06:31:27  1 of 10 OK created sql view model main.bronze_parking_violation_codes .......... [OK in 0.13s]
+06:31:27  2 of 10 START sql view model main.bronze_parking_violations .................... [RUN]
+06:31:27  2 of 10 OK created sql view model main.bronze_parking_violations ............... [OK in 0.04s]
+06:31:27  3 of 10 START sql view model main.first_model .................................. [RUN]
+06:31:27  3 of 10 OK created sql view model main.first_model ............................. [OK in 0.04s]
+06:31:27  4 of 10 START sql view model main.silver_parking_violation_codes ............... [RUN]
+06:31:27  4 of 10 OK created sql view model main.silver_parking_violation_codes .......... [OK in 0.04s]
+06:31:27  5 of 10 START sql view model main.silver_parking_violations .................... [RUN]
+06:31:27  5 of 10 OK created sql view model main.silver_parking_violations ............... [OK in 0.04s]
+06:31:27  6 of 10 START sql view model main.ref_model .................................... [RUN]
+06:31:27  6 of 10 OK created sql view model main.ref_model ............................... [OK in 0.04s]
+06:31:27  7 of 10 START sql view model main.silver_violation_tickets ..................... [RUN]
+06:31:27  7 of 10 OK created sql view model main.silver_violation_tickets ................ [OK in 0.04s]
+06:31:27  8 of 10 START sql view model main.silver_violation_vehicles .................... [RUN]
+06:31:27  8 of 10 OK created sql view model main.silver_violation_vehicles ............... [OK in 0.04s]
+06:31:27  9 of 10 START sql view model main.gold_ticket_metrics .......................... [RUN]
+06:31:27  9 of 10 OK created sql view model main.gold_ticket_metrics ..................... [OK in 0.04s]
+06:31:27  10 of 10 START sql view model main.gold_vehicle_metrics ........................ [RUN]
+06:31:27  10 of 10 OK created sql view model main.gold_vehicle_metrics ................... [OK in 0.04s]
+06:31:28  
+06:31:28  Finished running 10 view models in 0 hours 0 minutes and 0.62 seconds (0.62s).
+06:31:28  
+06:31:28  Completed successfully
+06:31:28  
+06:31:28  Done. PASS=10 WARN=0 ERROR=0 SKIP=0 TOTAL=10
+```
+
+*You have successfully created your gold tables.*
+
+Now that we have our data ready, lets go ahead and check it out.
+
+- Now that we have our data ready, lets go ahead and check it out by going to your run-queries.ipynb notebook file and run the below block of codes.
+
+  - `gold_ticket_metrics`
+
+  ```python
+  sql_query = """
+  SELECT * FROM gold_ticket_metrics
+  LIMIT 3; 
+  """
+
+  with ddb.connect("data/nyc_parking_violations.db") as con:
+      display(con.sql(sql_query).df())
+  ```
+  <table border="1" class="dataframe">
+    <thead>
+      <tr style="text-align: right;">
+        <th></th>
+        <th>violation_code</th>
+        <th>ticket_count</th>
+        <th>total_revenue_usd</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>0</th>
+        <td>5.0</td>
+        <td>17</td>
+        <td>1750.0</td>
+      </tr>
+      <tr>
+        <th>1</th>
+        <td>36.0</td>
+        <td>186</td>
+        <td>750.0</td>
+      </tr>
+      <tr>
+        <th>2</th>
+        <td>7.0</td>
+        <td>30</td>
+        <td>50.0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  - `gold_vehicle_metrics`
+
+  ```python
+  sql_query = """
+  SELECT * FROM gold_vehicle_metrics
+  LIMIT 3; 
+  """
+
+  with ddb.connect("data/nyc_parking_violations.db") as con:
+      display(con.sql(sql_query).df())
+  ```
+  <table border="1" class="dataframe">
+    <thead>
+      <tr style="text-align: right;">
+        <th></th>
+        <th>registration_state</th>
+        <th>ticket_count</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <th>0</th>
+        <td>NJ</td>
+        <td>60</td>
+      </tr>
+      <tr>
+        <th>1</th>
+        <td>PA</td>
+        <td>18</td>
+      </tr>
+      <tr>
+        <th>2</th>
+        <td>FL</td>
+        <td>15</td>
+      </tr>
+    </tbody>
+  </table>
+
+*We have finally completed all the tables for each component of our medallion architecture. Now let's see all of them in action.*
+
+- Generate docs using the dbt docs generate command
+
+```sh
+$ dbt docs generate
+```
+```sh
+06:41:08  Running with dbt=1.8.9
+06:41:08  Registered adapter: duckdb=1.8.4
+06:41:08  Found 10 models, 426 macros
+06:41:08  
+06:41:08  Concurrency: 1 threads (target='dev')
+06:41:08  
+06:41:08  Building catalog
+06:41:08  Catalog written to /home/siddhu/Desktop/Data-Engineering-With-DBT/nyc_parking_violations/target/catalog.json
+```
+
+- Run the dbt docs serve command.
+
+```sh
+$ dbt docs serve
+```
+
+- You can view all your models from the DBT Docs from your browser.
+
+<img src="../screenshots/dbt-database-medallion.png"
+    alt="Image Caption"
+    style="border:1px solid white; padding:1px; background:#fff; width: 3000px;" />
+
+- We could also see the lieage graph of our DBT project.
+
+<img src="../screenshots/dbt-medallion-lineage.png"
+    alt="Image Caption"
+    style="border:1px solid white; padding:1px; background:#fff; width: 3000px;" />
+
+*The graph shows that the tables matches exactly with our desired format for the medallion architecture.*
+
+---
+
+<div align="center">
+
+<h2>✦ Thank You For Reading This Guide ✦</h2>
+
+> *May your pipelines never break and your queries always run fast.* 🚀
+
+</div>
