@@ -1,0 +1,13 @@
+# models/docs/schema.yml
+models:
+  - name: bronze_parking_violation_codes
+    description: Raw data representing parking violation codes and their fee descriptions.
+    columns:
+      - name: violation_code
+        description: The standardized code of the violation.
+      - name: definition
+        description: A brief description of the violation code.
+      - name: manhattan_96th_st_below
+        description: The fee for the violation code in Manhattan below 96th Street.
+      - name: all_other_areas
+        description: The fee for the violation code in all other areas of New York City.
