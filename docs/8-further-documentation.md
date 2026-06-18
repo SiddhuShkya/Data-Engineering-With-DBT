@@ -341,6 +341,7 @@ models:
         data_tests:
           - unique
           - not_null
+          - generic_not_null
       - name: registration_state
         description: '{{ doc("registration_state") }}'
       - name: plate_type
@@ -500,7 +501,7 @@ models:
       - name: total_revenue_usd
         description: '{{ doc("total_revenue_usd") }}'
 
-  - name: gold_vehicles_metrics
+  - name: gold_vehicle_metrics
     description: "Aggregated metrics detailing the number of tickets per vehicle, identified by the plate ID."
     columns:
       - name: registration_state
