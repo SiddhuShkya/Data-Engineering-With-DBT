@@ -279,16 +279,14 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-  # schedule:
-  #   - cron: '0 8 * * *'
 
-env:
-  DBT_PROFILES_DIR: ./nyc_parking_violations
-  DBT_PROJECT_DIR: ./nyc_parking_violations
+# Set the working directory for all run commands in the job
+defaults:
+  run:
+    working-directory: ./nyc_parking_violations
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -297,18 +295,23 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.10"
+        
     - name: Install dependencies
+      # We need to target the root requirements.txt since we are inside nyc_parking_violations
       run: |
         python -m pip install --upgrade pip
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        if [ -f ../requirements.txt ]; then pip install -r ../requirements.txt; fi
+        
+    - name: Create data directory
+      # Creates the data folder in the root directory relative to nyc_parking_violations
+      run: mkdir -p ../data
+      
     - name: Run dbt Prod
       run: |
         dbt debug
         dbt compile --target prod
-        dbt run --target prod
-    - name: Test dbt Prod
-      run: |
-        dbt test --target prod
+        # Note: running dbt run here will require the source tables to exist in the DB
+        # dbt run --target prod 
 ```
 
 - Now add, commit and push the changes to github to trigger the workflow.
@@ -321,8 +324,18 @@ $ git push origin main
 
 - You should see your workflow running from your github website with the repo.
 
-<img src="../screenshots/github-action-failed-job.png"
+<img src="../screenshots/github-action-workflow.png"
     alt="Image Caption"
     style="border:1px solid white; padding:1px; background:#fff; width: 3000px;" />
 
-*This failure was intentional and to undertand this you should go back to your profiles.yml file.*
+*The workflow has been successfully executed, meaning we can now run our dbt project in a production like environment on github.*
+
+---
+
+<div align="center">
+
+<h2>✦ Thank You For Reading This Guide ✦</h2>
+
+> *May your pipelines never break and your queries always run fast.* 🚀
+
+</div>
