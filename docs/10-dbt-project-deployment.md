@@ -82,6 +82,7 @@ with ddb.connect("data/prod_nyc_parking_violations.db") as con:
 ```sh
 $ cd nyc_parking_violations/
 $ dbt debug 
+```
 
 ```sh
 05:44:17  Running with dbt=1.8.9
