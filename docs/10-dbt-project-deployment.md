@@ -314,5 +314,55 @@ jobs:
 - Now add, commit and push the changes to github to trigger the workflow.
 
 ```sh
+$ git add .
+$ git commit -m 'Added Workflow'
+$ git push origin main
+```
 
+- You should see your workflow running from your github website with the repo. You will also eventually notice an error stating that a job failed.
+
+<img src="../screenshots/github-action-failed-job.png"
+    alt="Image Caption"
+    style="border:1px solid white; padding:1px; background:#fff; width: 3000px;" />
+
+*This failure was intentional and to undertand this you should go back to your profiles.yml file.*
+
+```yml
+nyc_parking_violations:
+  outputs:
+    dev: 
+      type: duckdb
+      path: '../data/nyc_parking_violations.db'
+    prod:
+      type: duckdb
+      # Note that path is slightly different as GitHub actions.
+      # Start in the root directory and not in the nyc_parking_violations directory
+      path: '../data/prod_nyc_parking_violations.db'
+  target: dev
+```
+
+*You can see the path is based on our DBT project directory, but GitHub actions isn't starting from the nyc_parking_violations folder. Its actually starting from the root directory. So to fix it, we just need tp update the path*
+
+- Update the path for the prod field.
+
+```yml
+nyc_parking_violations:
+  outputs:
+    dev: 
+      type: duckdb
+      path: '../data/nyc_parking_violations.db'
+    prod:
+      type: duckdb
+      # Note that path is slightly different as GitHub actions.
+      # Start in the root directory and not in the nyc_parking_violations directory
+      path: './data/prod_nyc_parking_violations.db'
+  target: dev
+```
+
+- Again add, commit and push the changes to github to trigger the workflow.
+
+```sh
+$ git add .
+$ git commit -m 'Updated profiles.yml file'
+$ git push origin main
 ```

@@ -7,5 +7,5 @@ nyc_parking_violations:
       type: duckdb
       # Note that path is slightly different as GitHub actions.
       # Start in the root directory and not in the nyc_parking_violations directory
-      path: '../data/prod_nyc_parking_violations.db'
+      path: './data/prod_nyc_parking_violations.db'
   target: dev
